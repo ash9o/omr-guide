@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دليل تظليل رقم الجلوس | OMR Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Cairo', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .main-card {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 550px;
+            width: 100%;
+        }
+
+        .omr-container {
+            background-color: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 2rem;
+            /* Prevents user from interacting directly with the OMR sheet */
+            pointer-events: none; 
+            user-select: none;
+        }
+
+        .filled-bubble {
+            background-color: #1f2937 !important;
+            border-color: #1f2937 !important;
+            transform: scale(1.05);
+        }
+
+        .bubble-el {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .omr-box {
+            transition: all 0.2s ease-in-out;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div class="main-card relative">
+        <!-- Language Switcher -->
+        <div class="absolute top-4 left-4 right-auto" id="lang-toggle-container">
+            <button id="lang-btn" class="text-sm font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded-md transition">
+                English
+            </button>
+        </div>
+
+        <!-- Header & Instructions -->
+        <div class="text-center mb-6 mt-4">
+            <h1 id="page-title" class="text-2xl font-bold text-gray-800 mb-2">كيفية تظليل رقم الجلوس</h1>
+            <p id="page-desc" class="text-gray-600 text-sm">
+                أدخل رقم الجلوس الخاص بك في الحقل أدناه لترى الطريقة الصحيحة لكتابته وتظليله في ورقة الإجابة.
+            </p>
+        </div>
+
+        <!-- Main Input Field (Where the student actually types) -->
+        <div class="flex flex-col items-center mb-8 bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <label id="input-label" for="main-roll-input" class="text-blue-800 font-semibold mb-2">أدخل رقم الجلوس الخاص بك هنا:</label>
+            <input 
+                type="text" 
+                id="main-roll-input" 
+                maxlength="3" 
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="مثال: 5"
+                class="w-32 h-14 text-center text-3xl font-bold text-gray-800 border-2 border-blue-300 rounded-lg shadow-inner outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all dir-ltr"
+                style="direction: ltr;"
+            >
+        </div>
+
+        <!-- OMR Section Replica (Automated visual guide) -->
+        <div class="omr-container flex flex-col items-center">
+            
+            <div class="text-lg font-semibold text-gray-800 mb-1 tracking-wide" style="font-family: Arial, sans-serif;">Roll No</div>
+            
+            <!-- Read-only OMR Boxes -->
+            <div class="flex border-[3px] border-gray-800 w-max mb-4 bg-white" style="direction: ltr;">
+                <div id="box-0" class="omr-box w-12 h-14 flex items-center justify-center text-3xl font-bold text-gray-800 border-r-[3px] border-gray-800 bg-white"></div>
+                <div id="box-1" class="omr-box w-12 h-14 flex items-center justify-center text-3xl font-bold text-gray-800 border-r-[3px] border-gray-800 bg-white"></div>
+                <div id="box-2" class="omr-box w-12 h-14 flex items-center justify-center text-3xl font-bold text-gray-800 bg-white"></div>
+            </div>
+
+            <!-- Bubble Grid -->
+            <!-- Grid setup: 1 column for row numbers, 3 columns for bubbles -->
+            <div id="bubble-grid" class="grid grid-cols-[auto_repeat(3,_minmax(0,_1fr))] gap-y-3 gap-x-6 justify-items-center items-center pr-2" style="direction: ltr;">
+                <!-- Javascript will inject rows 0-9 here -->
+            </div>
+
+        </div>
+
+        <!-- Controls -->
+        <div class="mt-6 text-center">
+            <button id="clear-btn" class="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
+                مسح الحقل
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Translations
+        const translations = {
+            ar: {
+                title: "كيفية تظليل رقم الجلوس",
+                desc: "أدخل رقم الجلوس الخاص بك في الحقل أدناه لترى الطريقة الصحيحة لكتابته وتظليله في ورقة الإجابة.",
+                inputLabel: "أدخل رقم الجلوس الخاص بك هنا:",
+                placeholder: "مثال: 5",
+                clearBtn: "مسح الحقل",
+                langToggle: "English",
+                dir: "rtl"
+            },
+            en: {
+                title: "How to Fill Your Roll Number",
+                desc: "Type your roll number in the field below to see the correct way to fill the bubble sheet.",
+                inputLabel: "Enter your Roll Number here:",
+                placeholder: "e.g., 5",
+                clearBtn: "Clear Field",
+                langToggle: "العربية",
+                dir: "ltr"
+            }
+        };
+
+        let currentLang = 'ar';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const gridContainer = document.getElementById('bubble-grid');
+            const mainInput = document.getElementById('main-roll-input');
+            const clearBtn = document.getElementById('clear-btn');
+            const langBtn = document.getElementById('lang-btn');
+            
+            // 1. Generate the grid (Numbers 0-9 and 3 columns of bubbles)
+            for (let i = 0; i <= 9; i++) {
+                // Add the Row Number Label (0, 1, 2... 9)
+                const label = document.createElement('div');
+                label.className = 'text-xl font-medium text-gray-800 w-6 text-right mr-2';
+                label.innerText = i;
+                gridContainer.appendChild(label);
+
+                // Add 3 bubbles for this row
+                for (let col = 0; col < 3; col++) {
+                    const bubbleWrap = document.createElement('div');
+                    bubbleWrap.className = 'flex justify-center items-center w-full';
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = `w-8 h-8 rounded-full border-[2.5px] border-gray-800 bg-white bubble-el col-${col}`;
+                    bubble.dataset.col = col;
+                    bubble.dataset.val = i;
+                    
+                    bubbleWrap.appendChild(bubble);
+                    gridContainer.appendChild(bubbleWrap);
+                }
+            }
+
+            // 2. Handle typing in the Main Input
+            mainInput.addEventListener('input', (e) => {
+                // Force only numbers
+                let val = e.target.value.replace(/[^0-9]/g, '');
+                e.target.value = val;
+
+                updateOMRSheet(val);
+            });
+
+            // 3. Visual Updater Logic for the Replica
+            function updateOMRSheet(val) {
+                // First, clear everything
+                for (let c = 0; c < 3; c++) {
+                    document.getElementById(`box-${c}`).innerText = '';
+                    document.querySelectorAll(`.col-${c}`).forEach(b => b.classList.remove('filled-bubble'));
+                }
+
+                // If empty, stop here
+                if (!val) return;
+
+                // Pad the value with leading zeros to make it exactly 3 digits long
+                const paddedVal = val.padStart(3, '0');
+
+                // Fill based on the padded string (e.g., "005")
+                for (let i = 0; i < 3; i++) {
+                    const digit = paddedVal[i];
+                    
+                    // Fill the top box
+                    document.getElementById(`box-${i}`).innerText = digit;
+                    
+                    // Fill the corresponding bubble
+                    const bubbleToFill = document.querySelector(`.bubble-el[data-col="${i}"][data-val="${digit}"]`);
+                    if (bubbleToFill) {
+                        bubbleToFill.classList.add('filled-bubble');
+                    }
+                }
+            }
+
+            // 4. Clear Button functionality
+            clearBtn.addEventListener('click', () => {
+                mainInput.value = '';
+                updateOMRSheet('');
+                mainInput.focus();
+            });
+
+            // 5. Language Toggle
+            langBtn.addEventListener('click', () => {
+                currentLang = currentLang === 'ar' ? 'en' : 'ar';
+                const t = translations[currentLang];
+
+                document.documentElement.lang = currentLang;
+                document.documentElement.dir = t.dir;
+
+                document.getElementById('page-title').innerText = t.title;
+                document.getElementById('page-desc').innerText = t.desc;
+                document.getElementById('input-label').innerText = t.inputLabel;
+                mainInput.placeholder = t.placeholder;
+                clearBtn.innerText = t.clearBtn;
+                langBtn.innerText = t.langToggle;
+
+                // Adjust Language toggle button positioning based on RTL/LTR
+                const langContainer = document.getElementById('lang-toggle-container');
+                if (currentLang === 'ar') {
+                    langContainer.classList.remove('right-4');
+                    langContainer.classList.add('left-4');
+                } else {
+                    langContainer.classList.remove('left-4');
+                    langContainer.classList.add('right-4');
+                }
+            });
+            
+            // Focus first input on load
+            mainInput.focus();
+        });
+    </script>
+</body>
+</html>
